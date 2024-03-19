@@ -20,7 +20,7 @@ mod modexp;
 mod secp256k1;
 pub mod utilities;
 
-#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+#[cfg(all(target_os = "zkvm", target_vendor = "succinct"))]
 mod succinct;
 
 use alloc::{boxed::Box, vec::Vec};

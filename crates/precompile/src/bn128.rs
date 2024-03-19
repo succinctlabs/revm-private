@@ -123,16 +123,29 @@ pub fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
     let mut output = [0u8; 64];
 
     cfg_if::cfg_if! {
-        if #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))] {
+        if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
             mod succinct;
 
-            let p: [u8; 64] = input[0..64].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
-            let q: [u8; 64] = input[64..128].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
+            let p_x: [u8; 32] = input[0..32].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
+            let p_y: [u8; 32] = input[32..64].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
+            let q_x: [u8; 32] = input[64..96].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
+            let q_y: [u8; 32] = input[96..128].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
             // Convert into little endian
-            let mut p_rev = p;
-            let mut q_rev = q;
-            p_rev.reverse();
-            q_rev.reverse();
+            let mut p_x_rev = p_x;
+            let mut p_y_rev = p_y;
+            let mut q_x_rev = q_x;
+            let mut q_y_rev = q_y;
+            p_x_rev.reverse();
+            p_y_rev.reverse();
+            q_x_rev.reverse();
+            q_y_rev.reverse();
+
+            let mut p = [0u8; 64];
+            let mut q = [0u8; 64];
+            p[..32].copy_from_slice(&p_x_rev);
+            p[32..].copy_from_slice(&p_y_rev);
+            q[..32].copy_from_slice(&q_x_rev);
+            q[32..].copy_from_slice(&q_y_rev);
             succinct::bn254_add(&mut p_rev, &q_rev);
 
             // p_rev now contains the x and y coordinates in little endian form of the sum of p and q.
@@ -175,7 +188,7 @@ pub fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
     let mut out = [0u8; 64];
 
     cfg_if::cfg_if! {
-        if #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))] {
+        if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
             use succinct_zkvm::precompiles::bn254::Bn254;
             use succinct_zkvm::precompiles::utils::AffinePoint;
             use succinct::u8_to_u32;
