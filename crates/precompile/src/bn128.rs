@@ -120,20 +120,48 @@ fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
 
     let mut input = input.to_vec();
     input.resize(ADD_INPUT_LEN, 0);
-
-    let p1 = read_point(&input, 0)?;
-    let p2 = read_point(&input, 64)?;
-
     let mut output = [0u8; 64];
-    if let Some(sum) = AffineG1::from_jacobian(p1 + p2) {
-        sum.x()
-            .into_u256()
-            .to_big_endian(&mut output[..32])
-            .unwrap();
-        sum.y()
-            .into_u256()
-            .to_big_endian(&mut output[32..])
-            .unwrap();
+
+    cfg_if::cfg_if! {
+        if #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))] {
+            mod succinct;
+
+            let p: [u8; 64] = input[0..64].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
+            let q: [u8; 64] = input[64..128].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
+            // Convert into little endian
+            let mut p_rev = p;
+            let mut q_rev = q;
+            p_rev.reverse();
+            q_rev.reverse();
+            succinct::bn254_add(&mut p_rev, &q_rev);
+
+            // p_rev now contains the x and y coordinates in little endian form of the sum of p and q.
+            // Split p_rev into x and y parts and reverse each to convert to big endian
+            let (x, y) = p_rev.split_at(32);
+
+            // Reverse each part and write to output
+            for (i, &byte) in x.iter().enumerate() {
+                output[31 - i] = byte; // Big endian for x
+            }
+            for (i, &byte) in y.iter().enumerate() {
+                output[63 - i] = byte; // Big endian for y
+            }
+            
+        } else {
+            let p1 = read_point(&input, 0)?;
+            let p2 = read_point(&input, 64)?;
+
+            if let Some(sum) = AffineG1::from_jacobian(p1 + p2) {
+                sum.x()
+                    .into_u256()
+                    .to_big_endian(&mut output[..32])
+                    .unwrap();
+                sum.y()
+                    .into_u256()
+                    .to_big_endian(&mut output[32..])
+                    .unwrap();
+            }
+        }
     }
 
     Ok(output.into())
@@ -144,18 +172,56 @@ fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
 
     let mut input = input.to_vec();
     input.resize(MUL_INPUT_LEN, 0);
-
-    let p = read_point(&input, 0)?;
-
-    let mut fr_buf = [0u8; 32];
-    fr_buf.copy_from_slice(&input[64..96]);
-    // Fr::from_slice can only fail on incorrect length, and this is not a case.
-    let fr = bn::Fr::from_slice(&fr_buf[..]).unwrap();
-
     let mut out = [0u8; 64];
-    if let Some(mul) = AffineG1::from_jacobian(p * fr) {
-        mul.x().to_big_endian(&mut out[..32]).unwrap();
-        mul.y().to_big_endian(&mut out[32..]).unwrap();
+
+    cfg_if::cfg_if! {
+        if #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))] {
+            use succinct_zkvm::precompiles::bn254::Bn254;
+            use succinct_zkvm::precompiles::utils::AffinePoint;
+            use succinct::u8_to_u32;
+
+            let p: [u8; 64] = input[0..64].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
+            // convert into little endian
+            p.reverse();
+            let mut a_point = AffinePoint::<Bn254>::from_le_bytes(p);
+
+            let mut fr_buf = [0u8; 32];
+            fr_buf.copy_from_slice(&input[64..96]);
+            let mut scalar = u8_to_u32(&fr_buf);
+            
+            // convert into little endian
+            scalar.reverse();
+
+            a_point.mul_assign(&scalar);
+
+            // convert the result into bytes. 
+            let res = a_point.to_bytes();
+        
+            // res contains the x and y coordinates in little endian form of the multiplication.
+            // Split res into x and y parts and reverse each to convert to big endian
+            let (x, y) = res.split_at(32);
+
+            // Reverse each part and write to output
+            for (i, &byte) in x.iter().enumerate() {
+                output[31 - i] = byte; // Big endian for x
+            }
+            for (i, &byte) in y.iter().enumerate() {
+                output[63 - i] = byte; // Big endian for y
+            }
+            
+        } else {
+            let p = read_point(&input, 0)?;
+
+            let mut fr_buf = [0u8; 32];
+            fr_buf.copy_from_slice(&input[64..96]);
+            // Fr::from_slice can only fail on incorrect length, and this is not a case.
+            let fr = bn::Fr::from_slice(&fr_buf[..]).unwrap();
+        
+            if let Some(mul) = AffineG1::from_jacobian(p * fr) {
+                mul.x().to_big_endian(&mut out[..32]).unwrap();
+                mul.y().to_big_endian(&mut out[32..]).unwrap();
+            }
+        }
     }
 
     Ok(out.to_vec())

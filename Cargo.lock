@@ -2454,6 +2454,7 @@ version = "2.2.0"
 dependencies = [
  "aurora-engine-modexp",
  "c-kzg",
+ "cfg-if",
  "k256",
  "once_cell",
  "revm-primitives",

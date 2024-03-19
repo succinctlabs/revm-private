@@ -20,6 +20,9 @@ mod modexp;
 mod secp256k1;
 pub mod utilities;
 
+#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+mod succinct;
+
 use alloc::{boxed::Box, vec::Vec};
 use core::{fmt, hash::Hash};
 use once_cell::race::OnceBox;
