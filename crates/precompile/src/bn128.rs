@@ -146,6 +146,7 @@ pub fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
             p[32..].copy_from_slice(&p_y_rev);
             q[..32].copy_from_slice(&q_x_rev);
             q[32..].copy_from_slice(&q_y_rev);
+
             succinct::bn254_add(&mut p_rev, &q_rev);
 
             // p_rev now contains the x and y coordinates in little endian form of the sum of p and q.
@@ -193,9 +194,15 @@ pub fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
             use succinct_zkvm::precompiles::utils::AffinePoint;
             use succinct::u8_to_u32;
 
-            let p: [u8; 64] = input[0..64].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
+            let mut p_x: [u8; 32] = input[0..32].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
+            let mut p_y: [u8; 32] = input[32..64].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
             // convert into little endian
-            p.reverse();
+            p_x.reverse();
+            p_y.reverse();
+            let mut p = [0u8; 64];
+            p[..32].copy_from_slice(&p_x);
+            p[32..].copy_from_slice(&p_y);
+
             let mut a_point = AffinePoint::<Bn254>::from_le_bytes(p);
 
             let mut fr_buf = [0u8; 32];
