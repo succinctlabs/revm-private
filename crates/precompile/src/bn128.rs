@@ -115,7 +115,7 @@ fn read_point(input: &[u8], pos: usize) -> Result<bn::G1, Error> {
     }
 }
 
-fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
     use bn::AffineG1;
 
     let mut input = input.to_vec();
@@ -167,7 +167,7 @@ fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
     Ok(output.into())
 }
 
-fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
     use bn::AffineG1;
 
     let mut input = input.to_vec();
@@ -227,7 +227,7 @@ fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
     Ok(out.to_vec())
 }
 
-fn run_pair(
+pub fn run_pair(
     input: &[u8],
     pair_per_point_cost: u64,
     pair_base_cost: u64,
