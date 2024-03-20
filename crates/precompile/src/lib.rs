@@ -11,7 +11,7 @@
 extern crate alloc;
 
 mod blake2;
-mod bn128;
+pub mod bn128;
 mod hash;
 mod identity;
 #[cfg(feature = "c-kzg")]
@@ -19,6 +19,9 @@ pub mod kzg_point_evaluation;
 mod modexp;
 mod secp256k1;
 pub mod utilities;
+
+#[cfg(all(target_os = "zkvm", target_vendor = "succinct"))]
+mod succinct;
 
 use alloc::{boxed::Box, vec::Vec};
 use core::{fmt, hash::Hash};

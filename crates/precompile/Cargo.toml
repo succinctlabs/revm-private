@@ -15,9 +15,12 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 revm-primitives = { path = "../primitives", version = "2.0.0", default-features = false }
 bn = { package = "substrate-bn", version = "0.6", default-features = false }
+cfg-if = "1.0"
 once_cell = { version = "1.19", default-features = false, features = ["alloc"] }
 ripemd = { version = "0.1", default-features = false }
 sha2 = { version = "0.10", default-features = false }
+sp1-zkvm = { git = "https://github.com/0xkanekiken/sp1.git", branch = "kaneki-bn254-precompile"}
+getrandom = "0.2.12"
 # modexp precompile
 aurora-engine-modexp = { version = "1.0", default-features = false }
 
