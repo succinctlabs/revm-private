@@ -138,7 +138,7 @@ pub fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
 
     cfg_if::cfg_if! {
         if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
-            use crate::succinct::bn254_add;
+            use crate::succinct::{bn254_add, u8_to_u32};
 
             let p_x: [u8; 32] = input[0..32].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
             let p_y: [u8; 32] = input[32..64].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
@@ -160,6 +160,9 @@ pub fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
             p[32..].copy_from_slice(&p_y_rev);
             q[..32].copy_from_slice(&q_x_rev);
             q[32..].copy_from_slice(&q_y_rev);
+
+            let mut p = u8_to_u32(&p);
+            let q = u8_to_u32(&q);
 
             bn254_add(&mut p, &q);
 
@@ -228,7 +231,7 @@ pub fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
             a_point.mul_assign(&scalar);
 
             // convert the result into bytes. 
-            let res = a_point.to_bytes();
+            let res = a_point.to_le_bytes();
         
             // res contains the x and y coordinates in little endian form of the multiplication.
             // Split res into x and y parts and reverse each to convert to big endian
