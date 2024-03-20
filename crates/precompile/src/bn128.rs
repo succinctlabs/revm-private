@@ -245,9 +245,8 @@ pub fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
         } else {
             let p = read_point(&input[..64])?;
 
+            // `Fr::from_slice` can only fail when the length is not 32.
             let fr = bn::Fr::from_slice(&input[64..96]).unwrap();
-            // Fr::from_slice can only fail on incorrect length, and this is not a case.
-            let fr = bn::Fr::from_slice(&fr_buf[..]).unwrap();
         
             if let Some(mul) = AffineG1::from_jacobian(p * fr) {
                 mul.x().to_big_endian(&mut out[..32]).unwrap();
