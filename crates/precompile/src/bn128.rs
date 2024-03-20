@@ -161,8 +161,8 @@ pub fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
             q[..32].copy_from_slice(&q_x_rev);
             q[32..].copy_from_slice(&q_y_rev);
 
-            let mut p = u8_to_u32(&p);
-            let q = u8_to_u32(&q);
+            // let mut p = u8_to_u32(&p);
+            // let q = u8_to_u32(&q);
 
             bn254_add(&mut p, &q);
 
