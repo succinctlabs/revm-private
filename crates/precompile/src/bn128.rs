@@ -138,7 +138,7 @@ pub fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
 
     cfg_if::cfg_if! {
         if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
-            mod succinct;
+            use crate::succinct::bn254_add;
 
             let p_x: [u8; 32] = input[0..32].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
             let p_y: [u8; 32] = input[32..64].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
@@ -161,11 +161,11 @@ pub fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
             q[..32].copy_from_slice(&q_x_rev);
             q[32..].copy_from_slice(&q_y_rev);
 
-            succinct::bn254_add(&mut p_rev, &q_rev);
+            bn254_add(&mut p, &q);
 
             // p_rev now contains the x and y coordinates in little endian form of the sum of p and q.
             // Split p_rev into x and y parts and reverse each to convert to big endian
-            let (x, y) = p_rev.split_at(32);
+            let (x, y) = p.split_at(32);
 
             // Reverse each part and write to output
             for (i, &byte) in x.iter().enumerate() {
@@ -203,9 +203,9 @@ pub fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
 
     cfg_if::cfg_if! {
         if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
-            use succinct_zkvm::precompiles::bn254::Bn254;
-            use succinct_zkvm::precompiles::utils::AffinePoint;
-            use succinct::u8_to_u32;
+            use sp1_zkvm::precompiles::bn254::Bn254;
+            use sp1_zkvm::precompiles::utils::AffinePoint;
+            use crate::succinct::u8_to_u32;
 
             let mut p_x: [u8; 32] = input[0..32].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
             let mut p_y: [u8; 32] = input[32..64].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
@@ -236,10 +236,10 @@ pub fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
 
             // Reverse each part and write to output
             for (i, &byte) in x.iter().enumerate() {
-                output[31 - i] = byte; // Big endian for x
+                out[31 - i] = byte; // Big endian for x
             }
             for (i, &byte) in y.iter().enumerate() {
-                output[63 - i] = byte; // Big endian for y
+                out[63 - i] = byte; // Big endian for y
             }
             
         } else {
