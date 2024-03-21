@@ -140,44 +140,22 @@ pub fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
         if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
             use crate::succinct::{bn254_add, u8_to_u32};
 
-            let p_x: [u8; 32] = input[0..32].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
-            let p_y: [u8; 32] = input[32..64].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
-            let q_x: [u8; 32] = input[64..96].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
-            let q_y: [u8; 32] = input[96..128].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
-            // Convert into little endian
-            let mut p_x_rev = p_x;
-            let mut p_y_rev = p_y;
-            let mut q_x_rev = q_x;
-            let mut q_y_rev = q_y;
-            p_x_rev.reverse();
-            p_y_rev.reverse();
-            q_x_rev.reverse();
-            q_y_rev.reverse();
+            let p = read_point_le(&input[..64])?;
+            let q = read_point_le(&input[64..])?;
 
-            let mut p = [0u8; 64];
-            let mut q = [0u8; 64];
-            p[..32].copy_from_slice(&p_x_rev);
-            p[32..].copy_from_slice(&p_y_rev);
-            q[..32].copy_from_slice(&q_x_rev);
-            q[32..].copy_from_slice(&q_y_rev);
+            let mut p_bytes = [0u8; 64];
+            p_bytes[..32].copy_from_slice(&p.x().to_le_bytes());
+            p_bytes[32..].copy_from_slice(&p.y().to_le_bytes());
 
-            // let mut p = u8_to_u32(&p);
-            // let q = u8_to_u32(&q);
+            let mut q_bytes = [0u8; 64];
+            q_bytes[..32].copy_from_slice(&q.x().to_le_bytes());
+            q_bytes[32..].copy_from_slice(&q.y().to_le_bytes());
 
-            bn254_add(&mut p, &q);
+            bn254_add(&mut p_bytes, &q_bytes);
 
-            // p_rev now contains the x and y coordinates in little endian form of the sum of p and q.
-            // Split p_rev into x and y parts and reverse each to convert to big endian
-            let (x, y) = p.split_at(32);
+            output[..32].copy_from_slice(&p_bytes[..32].iter().rev().copied().collect::<Vec<_>>());
+            output[32..].copy_from_slice(&p_bytes[32..].iter().rev().copied().collect::<Vec<_>>());
 
-            // Reverse each part and write to output
-            for (i, &byte) in x.iter().enumerate() {
-                output[31 - i] = byte; // Big endian for x
-            }
-            for (i, &byte) in y.iter().enumerate() {
-                output[63 - i] = byte; // Big endian for y
-            }
-            
         } else {
             let p1 = read_point(&input[..64])?;
             let p2 = read_point(&input[64..])?;
@@ -210,47 +188,29 @@ pub fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
             use sp1_zkvm::precompiles::utils::AffinePoint;
             use crate::succinct::u8_to_u32;
 
-            let mut p_x: [u8; 32] = input[0..32].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
-            let mut p_y: [u8; 32] = input[32..64].try_into().map_err(|_| Error::Bn128AffineGFailedToCreate)?;
-            // convert into little endian
-            p_x.reverse();
-            p_y.reverse();
-            let mut p = [0u8; 64];
-            p[..32].copy_from_slice(&p_x);
-            p[32..].copy_from_slice(&p_y);
+            let p = read_point_le(&input[..64])?;
+            let mut p_bytes = [0u8; 64];
+            p_bytes[..32].copy_from_slice(&p.x().to_le_bytes());
+            p_bytes[32..].copy_from_slice(&p.y().to_le_bytes());
 
-            let mut a_point = AffinePoint::<Bn254>::from_le_bytes(p);
+            let mut a_point = AffinePoint::<Bn254>::from_le_bytes(p_bytes);
 
-            let mut fr_buf = [0u8; 32];
-            fr_buf.copy_from_slice(&input[64..96]);
-            let mut scalar = u8_to_u32(&fr_buf);
-            
-            // convert into little endian
+            let mut scalar = u8_to_u32(&input[64..96]);
             scalar.reverse();
 
             a_point.mul_assign(&scalar);
 
-            // convert the result into bytes. 
             let res = a_point.to_le_bytes();
-        
-            // res contains the x and y coordinates in little endian form of the multiplication.
-            // Split res into x and y parts and reverse each to convert to big endian
-            let (x, y) = res.split_at(32);
 
-            // Reverse each part and write to output
-            for (i, &byte) in x.iter().enumerate() {
-                out[31 - i] = byte; // Big endian for x
-            }
-            for (i, &byte) in y.iter().enumerate() {
-                out[63 - i] = byte; // Big endian for y
-            }
-            
+            out[..32].copy_from_slice(&res[..32].iter().rev().copied().collect::<Vec<_>>());
+            out[32..].copy_from_slice(&res[32..].iter().rev().copied().collect::<Vec<_>>());
+
         } else {
             let p = read_point(&input[..64])?;
 
             // `Fr::from_slice` can only fail when the length is not 32.
             let fr = bn::Fr::from_slice(&input[64..96]).unwrap();
-        
+
             if let Some(mul) = AffineG1::from_jacobian(p * fr) {
                 mul.x().to_big_endian(&mut out[..32]).unwrap();
                 mul.y().to_big_endian(&mut out[32..]).unwrap();

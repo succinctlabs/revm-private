@@ -26,8 +26,6 @@ mod succinct;
 #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))]
 pub use succinct::*;
 
-
-
 use alloc::{boxed::Box, vec::Vec};
 use core::{fmt, hash::Hash};
 use once_cell::race::OnceBox;
