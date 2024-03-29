@@ -176,8 +176,7 @@ pub fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
     Ok(output.into())
 }
 
-pub fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
-    use bn::AffineG1;
+fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
 
     let input = right_pad::<MUL_INPUT_LEN>(input);
     let mut out = [0u8; 64];
@@ -220,7 +219,7 @@ pub fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
     Ok(out.to_vec())
 }
 
-pub fn run_pair(
+fn run_pair(
     input: &[u8],
     pair_per_point_cost: u64,
     pair_base_cost: u64,
