@@ -11,7 +11,7 @@
 extern crate alloc;
 
 mod blake2;
-pub mod bn128;
+mod bn128;
 mod hash;
 mod identity;
 #[cfg(feature = "c-kzg")]

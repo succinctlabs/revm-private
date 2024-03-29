@@ -132,7 +132,7 @@ fn new_g1_point(px: Fq, py: Fq) -> Result<G1, Error> {
     }
 }
 
-pub fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
+fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
     let input = right_pad::<ADD_INPUT_LEN>(input);
     let mut output = [0u8; 64];
 
