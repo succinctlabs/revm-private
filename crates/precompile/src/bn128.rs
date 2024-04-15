@@ -134,37 +134,87 @@ fn new_g1_point(px: Fq, py: Fq) -> Result<G1, Error> {
 
 fn run_add(input: &[u8]) -> Result<Vec<u8>, Error> {
     let input = right_pad::<ADD_INPUT_LEN>(input);
-
-    let p1 = read_point(&input[..64])?;
-    let p2 = read_point(&input[64..])?;
-
     let mut output = [0u8; 64];
-    if let Some(sum) = AffineG1::from_jacobian(p1 + p2) {
-        sum.x()
-            .into_u256()
-            .to_big_endian(&mut output[..32])
-            .unwrap();
-        sum.y()
-            .into_u256()
-            .to_big_endian(&mut output[32..])
-            .unwrap();
+
+    cfg_if::cfg_if! {
+        if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
+            use crate::succinct::{bn254_add, u8_to_u32};
+
+            let p = read_point_le(&input[..64])?;
+            let q = read_point_le(&input[64..])?;
+
+            let mut p_bytes = [0u8; 64];
+            p_bytes[..32].copy_from_slice(&p.x().to_le_bytes());
+            p_bytes[32..].copy_from_slice(&p.y().to_le_bytes());
+
+            let mut q_bytes = [0u8; 64];
+            q_bytes[..32].copy_from_slice(&q.x().to_le_bytes());
+            q_bytes[32..].copy_from_slice(&q.y().to_le_bytes());
+
+            bn254_add(&mut p_bytes, &q_bytes);
+
+            output[..32].copy_from_slice(&p_bytes[..32].iter().rev().copied().collect::<Vec<_>>());
+            output[32..].copy_from_slice(&p_bytes[32..].iter().rev().copied().collect::<Vec<_>>());
+
+        } else {
+            let p1 = read_point(&input[..64])?;
+            let p2 = read_point(&input[64..])?;
+
+            if let Some(sum) = AffineG1::from_jacobian(p1 + p2) {
+                sum.x()
+                    .into_u256()
+                    .to_big_endian(&mut output[..32])
+                    .unwrap();
+                sum.y()
+                    .into_u256()
+                    .to_big_endian(&mut output[32..])
+                    .unwrap();
+            }
+        }
     }
 
     Ok(output.into())
 }
 
 fn run_mul(input: &[u8]) -> Result<Vec<u8>, Error> {
+
     let input = right_pad::<MUL_INPUT_LEN>(input);
-
-    let p = read_point(&input[..64])?;
-
-    // `Fr::from_slice` can only fail when the length is not 32.
-    let fr = bn::Fr::from_slice(&input[64..96]).unwrap();
-
     let mut out = [0u8; 64];
-    if let Some(mul) = AffineG1::from_jacobian(p * fr) {
-        mul.x().to_big_endian(&mut out[..32]).unwrap();
-        mul.y().to_big_endian(&mut out[32..]).unwrap();
+
+    cfg_if::cfg_if! {
+        if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
+            use sp1_zkvm::precompiles::bn254::Bn254;
+            use sp1_zkvm::precompiles::utils::AffinePoint;
+            use crate::succinct::u8_to_u32;
+
+            let p = read_point_le(&input[..64])?;
+            let mut p_bytes = [0u8; 64];
+            p_bytes[..32].copy_from_slice(&p.x().to_le_bytes());
+            p_bytes[32..].copy_from_slice(&p.y().to_le_bytes());
+
+            let mut a_point = AffinePoint::<Bn254>::from_le_bytes(p_bytes);
+
+            let mut scalar = u8_to_u32(&input[64..96]);
+            scalar.reverse();
+
+            a_point.mul_assign(&scalar);
+
+            let res = a_point.to_le_bytes();
+
+            out[..32].copy_from_slice(&res[..32].iter().rev().copied().collect::<Vec<_>>());
+            out[32..].copy_from_slice(&res[32..].iter().rev().copied().collect::<Vec<_>>());
+
+        } else {
+            let p = read_point(&input[..64])?;
+
+            // `Fr::from_slice` can only fail when the length is not 32.
+            let fr = bn::Fr::from_slice(&input[64..96]).unwrap();
+
+            if let Some(mul) = AffineG1::from_jacobian(p * fr) {
+                mul.x().to_big_endian(&mut out[..32]).unwrap();
+                mul.y().to_big_endian(&mut out[32..]).unwrap();
+            }
+        }
     }
     Ok(out.to_vec())
 }
