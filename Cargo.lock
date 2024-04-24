@@ -51,6 +51,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef197eb250c64962003cb08b90b17f0882c192f4a6f2f544809d424fd7cb0e7d"
 dependencies = [
  "alloy-rlp",
+ "bytes",
+ "cfg-if",
+ "const-hex",
+ "derive_more",
+ "hex-literal",
+ "itoa",
+ "k256",
+ "keccak-asm",
+ "proptest",
+ "rand",
+ "ruint",
+ "serde",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "alloy-primitives"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50c715249705afa1e32be79dabfd35e2ef0f1cc02ad2cf48c9d1e20026ee637b"
+dependencies = [
+ "alloy-rlp",
  "arbitrary",
  "bytes",
  "cfg-if",
@@ -116,7 +138,7 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e7c6a8c492b1d6a4f92a8fc6a13cf39473978dd7d459d7221969ce5a73d97cd"
 dependencies = [
- "alloy-primitives",
+ "alloy-primitives 0.6.3",
  "alloy-sol-macro",
  "const-hex",
  "serde",
@@ -2374,7 +2396,7 @@ dependencies = [
 name = "revm-primitives"
 version = "2.0.0"
 dependencies = [
- "alloy-primitives",
+ "alloy-primitives 0.7.1",
  "auto_impl",
  "bitflags 2.4.2",
  "bitvec",

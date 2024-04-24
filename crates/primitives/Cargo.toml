@@ -17,7 +17,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-alloy-primitives = { version = "0.6", default-features = false, features = [
+alloy-primitives = { version = "0.7", default-features = false, features = [
     "rlp",
 ] }
 hashbrown = "0.14"
@@ -87,4 +87,10 @@ optional_beneficiary_reward = []
 
 # See comments in `revm-precompile`
 # TODO: remove `blst` dep when `c-kzg` has a portable feature
-c-kzg = ["dep:c-kzg", "dep:once_cell", "dep:derive_more", "dep:blst", "blst?/portable"]
+c-kzg = [
+    "dep:c-kzg",
+    "dep:once_cell",
+    "dep:derive_more",
+    "dep:blst",
+    "blst?/portable",
+]
